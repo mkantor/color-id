@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+set -o errexit
+set -o pipefail
+set -o nounset
+trap 'echo "$0: line $LINENO: exit status of last command: $?" 1>&2' ERR
+
+this_dir=$(cd -P "$(dirname "$0")" && pwd)
+config_file="$this_dir/../parent-colors.json"
+container_config_file="/opt/color-id/$(basename "$config_file")"
+
+docker build --tag color-id "$this_dir/.."
+
+# If run from a terminal, make sure to tell docker that.
+if [[ -t 0 ]]
+then
+  docker run \
+    --rm \
+    --interactive \
+    --tty \
+    --volume "$config_file:$container_config_file:ro" \
+    color-id "$container_config_file"
+else
+  docker run \
+    --rm \
+    --interactive \
+    --volume "$config_file:$container_config_file:ro" \
+    color-id "$container_config_file"
+fi

@@ -1,0 +1,8 @@
+[package]
+name = "color-id"
+version = "0.0.1"
+authors = ["Matt Kantor <the.matt.kantor@gmail.com>"]
+
+[dependencies]
+palette = "0.3.0"
+serde_json = "1.0.17"
