@@ -6,20 +6,57 @@ use palette::{Lab, Srgb};
 use std::collections::HashMap;
 use std::env;
 use std::f32;
+use std::fmt;
 use std::fs::File;
 use std::io;
 use std::io::prelude::*;
 use std::ops::Range;
 
+const USAGE: &'static str = "Usage: color-id PARENT_COLOR_FILE
+
+Reads colors from standard input and finds the perceptually-nearest color out
+of the set of \"parent\" colors in PARENT_COLOR_FILE.
+
+All colors should be specified in in hex triplet format, e.g. \"ff0000\".
+PARENT_COLOR_FILE is a JSON file mapping names to colors, like the following:
+
+    {
+      \"white\": \"ffffff\",
+      \"black\": \"000000\",
+      \"red\": \"ff0000\"
+    }
+
+Try: echo \"6495ed\" | color-id parent-colors.json";
+
 type Success = ();
 
-#[derive(Debug)]
 enum Error {
     JsonError(serde_json::Error),
     IoError(io::Error),
     ParsingError(ParsingError),
-    NoParent(),
+    NoParentColor(),
     NoConfigFileSpecified(),
+}
+impl fmt::Debug for Error {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let error_message = match self {
+            Error::JsonError(error) => format!("JSON error ({:?})!", error.classify()),
+            Error::IoError(error) => format!("I/O error ({:?})!", error.kind()),
+            Error::ParsingError(ParsingError::InputTooLong) => {
+                String::from("Input was too long to be a hex triplet!")
+            }
+            Error::ParsingError(ParsingError::InvalidHexTriplet) => {
+                String::from("Invalid hex triplet!")
+            }
+            Error::NoParentColor() => {
+                String::from("No parent color could be found for the input color!")
+            }
+            Error::NoConfigFileSpecified() => {
+                String::from("No parent color file was specified on the CLI!")
+            }
+        };
+        write!(f, "{}\n\n{}", error_message, USAGE)
+    }
 }
 
 impl From<serde_json::Error> for Error {
@@ -51,17 +88,14 @@ fn main() -> Result<Success, Error> {
     let mut output = stdout.lock();
 
     let color_processor = input.lines().map(|line| {
-        line.map_err(Error::IoError)
-            .and_then(|input_color| parse_color(&input_color).map_err(Error::ParsingError))
-            .map(|input_rgb| perceptually_nearest(input_rgb, &parents))
-            .and_then(|parent| {
-                parent.ok_or(Error::NoParent()).and_then(|(_, color)| {
-                    output
-                        .write(format!("{}\n", hex_triplet(color)).as_bytes())
-                        .map_err(Error::IoError)
-                        .and_then(|_| output.flush().map_err(Error::IoError))
-                })
-            })
+        let input_color = line?;
+        let input_rgb = parse_color(&input_color)?;
+        let (parent_name, parent_color) =
+            perceptually_nearest(input_rgb, &parents).ok_or(Error::NoParentColor())?;
+        output
+            .write(format!("{} {}\n", hex_triplet(parent_color), parent_name).as_bytes())
+            .map_err(Error::IoError)
+            .and_then(|_| output.flush().map_err(Error::IoError))
     });
 
     color_processor.collect()
@@ -69,6 +103,11 @@ fn main() -> Result<Success, Error> {
 
 #[derive(PartialEq, Eq, Hash, Clone, Copy)]
 struct ColorName<'a>(&'a str);
+impl<'a> fmt::Display for ColorName<'a> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
 
 fn parents_from_config(config: &str) -> Result<HashMap<ColorName, Rgb>, Error> {
     let config: HashMap<&str, &str> = serde_json::from_str(config)?;
@@ -122,7 +161,7 @@ fn hex_triplet(rgb: Rgb) -> String {
 
 #[derive(Debug)]
 enum ParsingError {
-    ParsingError,
+    InvalidHexTriplet,
     InputTooLong,
 }
 
@@ -139,7 +178,7 @@ fn parse_color(hex_triplet: &str) -> Result<Rgb, ParsingError> {
         };
         match (hex_to_u8(0..2), hex_to_u8(2..4), hex_to_u8(4..6)) {
             (Some(red), Some(green), Some(blue)) => Ok(Srgb::new_u8(red, green, blue)),
-            _ => Err(ParsingError::ParsingError),
+            _ => Err(ParsingError::InvalidHexTriplet),
         }
     }
 }
