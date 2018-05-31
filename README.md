@@ -31,3 +31,19 @@ Generate an HTML page visualizing 1000 input/output pairs:
 ```sh
 ./util/sample 1000 | ./util/visualize > output.html
 ```
+
+### Benchmarking
+
+See how fast the program is for some number of inputs. There is some fixed 
+startup cost (e.g. parsing the config file) so larger numbers of input colors 
+should result in better performance-per-color. Note that you need the Rust 
+compiler toolchain on your host machine to run benchmark.
+
+```sh
+./util/benchmark 1000000
+```
+
+My laptop churns through a million colors in about 11 seconds (so around 11 
+microseconds per color). I don't mean to brag here; this is mostly thanks to 
+Rust being "fast by default". I haven't gone out of my way to optimize anything 
+yet (pull requests welcome!).
