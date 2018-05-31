@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# Usage: build-and-run
+# Build the application from source and run it in a docker container using a
+# default set of parent colors.
 set -o errexit
 set -o pipefail
 set -o nounset
@@ -9,20 +12,8 @@ config_file="$this_dir/../parent-colors.json"
 container_config_file="/opt/color-id/$(basename "$config_file")"
 
 docker build --tag color-id "$this_dir/.."
-
-# If run from a terminal, make sure to tell docker that.
-if [[ -t 0 ]]
-then
-  docker run \
-    --rm \
-    --interactive \
-    --tty \
-    --volume "$config_file:$container_config_file:ro" \
-    color-id "$container_config_file"
-else
-  docker run \
-    --rm \
-    --interactive \
-    --volume "$config_file:$container_config_file:ro" \
-    color-id "$container_config_file"
-fi
+docker run \
+  --rm \
+  --interactive \
+  --volume "$config_file:$container_config_file:ro" \
+  color-id "$container_config_file"

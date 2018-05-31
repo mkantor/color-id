@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+# Usage: sample NUM
+# Sample NUM input colors and print them along with the output for each color.
+# Each line of output is one sample in the following format:
+# $input_hex_triplet $output_hex_triplet $output_color_name
+set -o errexit
+set -o pipefail
+set -o nounset
+trap 'echo "$0: line $LINENO: exit status of last command: $?" 1>&2' ERR
+trap 'cleanup' EXIT
+
+cleanup() {
+  if [ -z "$workspace" ]
+  then
+    rm -rf "$workspace"
+  fi
+}
+
+samples="$1"
+this_dir=$(cd -P "$(dirname "$0")" && pwd)
+
+workspace=$(mktemp -d "${TMPDIR:-/tmp}/color-id-sample-XXXXXXXX")
+
+config_file="$this_dir/../parent-colors.json"
+container_config_file="/opt/color-id/$(basename "$config_file")"
+
+docker build --tag color-id "$this_dir/.." > /dev/null
+
+"$this_dir/random-colors" "$samples" \
+  | tee "$workspace/inputs" \
+  | docker run \
+    --rm \
+    --interactive \
+    --volume "$config_file:$container_config_file:ro" \
+    color-id "$container_config_file" \
+  > "$workspace/outputs"
+
+paste -d" " "$workspace/inputs" "$workspace/outputs"

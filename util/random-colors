@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+# Usage: random-colors NUM
+# Output NUM random hex colors.
+set -o errexit
+set -o nounset
+trap 'echo "$0: line $LINENO: exit status of last command: $?" 1>&2' ERR
+
+count="$1"
+characters=$((count * 6))
+
+LC_CTYPE=C tr -dc 'a-f0-9' < /dev/urandom | head -c"$characters" | fold -w6
+echo

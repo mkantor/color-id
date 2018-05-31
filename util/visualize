@@ -1,0 +1,51 @@
+#!/usr/bin/env bash
+# Usage: sample NUM | visualize > output.html
+# Generate a HTML document visualizing the results for NUM different inputs.
+set -o errexit
+set -o pipefail
+set -o nounset
+trap 'echo "$0: line $LINENO: exit status of last command: $?" 1>&2' ERR
+
+cat <<EOF
+<!doctype html>
+<html lang="en">
+<head>
+  <title>color-id result summary</title>
+  <style>
+    table {
+      border-spacing: 0 1em;
+    }
+    td {
+      height: 5em;
+      width: 10em;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <table>
+    <tr>
+      <th>Input</th>
+      <th>Parent</th>
+    </tr>
+EOF
+
+while read -r line
+do
+  set $line
+  input_hex="$1"
+  output_hex="$2"
+  output_name="$3"
+  cat <<EOF
+    <tr>
+      <td style="background-color: #$input_hex">$input_hex</td>
+      <td style="background-color: #$output_hex">$output_name</td>
+    </tr>
+EOF
+done
+
+cat <<EOF
+  </table>
+</body>
+</html>
+EOF
