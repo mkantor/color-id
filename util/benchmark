@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+# Usage: benchmark NUM
+# Times how long it takes to run color-id on a list of NUM colors. Note that
+# unlike most of the other utils, this one requires the Rust compiler toolchain
+# to be installed (it doesn't run in a container to reduce I/O overhead).
+set -o errexit
+set -o pipefail
+set -o nounset
+trap 'echo "$0: line $LINENO: exit status of last command: $?" 1>&2' ERR
+
+samples="$1"
+this_dir=$(cd -P "$(dirname "$0")" && pwd)
+config_file="$this_dir/../parent-colors.json"
+
+cargo build --release
+color_id="$this_dir/../target/release/color-id"
+
+echo "Benchmarking with $samples colors..."
+./util/random-colors "$samples" | time -p "$color_id" "$config_file" > /dev/null
