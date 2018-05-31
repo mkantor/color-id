@@ -4,7 +4,9 @@ A CLI application that reads colors from standard input and finds the
 perceptually-nearest color out of a set of "parent" colors specified in a 
 configuration file.
 
-## Quick start
+This is my entry for @jonrahoi's [niftyColors contest](https://github.com/jonrahoi/niftyColors).
+
+## Quick Start
 
 This repository contains a handy script to build the application from source.
 Here's how to use it to test a single color. First make sure you have git and 
@@ -21,7 +23,7 @@ compiler and all dependencies, but should be pretty quick for subsequent runs.
 
 ## Utilities
 
-There are a few other scripts included for playing with the application. Here's
+There are some other scripts included for playing with the application. Here's
 a few things you can do with them:
 
 ### Visualize Results
